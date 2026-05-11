@@ -1,5 +1,4 @@
 const state = {
-  apiKey: localStorage.getItem("smth.apiKey") || "",
   items: [],
   nextCursor: "",
   selectedId: new URLSearchParams(location.search).get("id") || "",
@@ -7,10 +6,7 @@ const state = {
   query: "",
   project: "",
   stream: null,
-  pendingDelete: null,
-  undoTimer: 0,
   toastTimer: 0,
-  toastTick: 0,
 };
 
 const els = {
@@ -18,7 +14,6 @@ const els = {
   main: document.querySelector(".main"),
   conn: document.getElementById("conn"),
   connLabel: document.getElementById("connLabel"),
-  apiKey: document.getElementById("apiKey"),
   search: document.getElementById("search"),
   project: document.getElementById("project"),
   refresh: document.getElementById("refresh"),
@@ -33,26 +28,15 @@ const els = {
   frame: document.getElementById("frame"),
   copy: document.getElementById("copy"),
   open: document.getElementById("open"),
-  delete: document.getElementById("delete"),
   toast: document.getElementById("toast"),
   toastText: document.getElementById("toastText"),
-  toastUndo: document.getElementById("toastUndo"),
   toastBar: document.getElementById("toastBar"),
 };
-
-els.apiKey.value = state.apiKey;
-
-function headers() {
-  return state.apiKey ? { "X-API-Key": state.apiKey } : {};
-}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
-    headers: {
-      ...headers(),
-      ...(options.headers || {}),
-    },
+    headers: options.headers || {},
   });
   if (!response.ok) {
     const message = await response.text();
@@ -117,7 +101,6 @@ function render() {
   els.main.classList.toggle("is-empty", !selected);
   els.copy.disabled = !selected;
   els.open.disabled = !selected;
-  els.delete.disabled = !selected || !state.apiKey;
 
   if (!selected) {
     els.mainTitle.textContent = "no artifact selected";
@@ -153,7 +136,7 @@ async function loadFrameHTML(id) {
   els.frame.dataset.artifactId = id;
   els.frame.removeAttribute("src");
   try {
-    const response = await fetch(`/a/${id}`, { headers: headers() });
+    const response = await fetch(`/a/${id}`);
     if (!response.ok) {
       throw new Error((await response.text()).trim() || `${response.status} ${response.statusText}`);
     }
@@ -334,65 +317,6 @@ function openRaw() {
   }
 }
 
-function requestDelete() {
-  const selected = selectedItem();
-  if (!selected || !state.apiKey) {
-    return;
-  }
-
-  commitPendingDelete();
-
-  const victim = selected;
-  removeItem(victim.id);
-  state.pendingDelete = {
-    item: victim,
-    expiresAt: Date.now() + 3000,
-  };
-  showUndoToast(`deleted "${displayTitle(victim.title || victim.id, victim.project || "")}"`);
-  render();
-
-  state.undoTimer = window.setTimeout(() => {
-    commitPendingDelete();
-  }, 3000);
-}
-
-function undoDelete() {
-  if (!state.pendingDelete) {
-    return;
-  }
-  window.clearTimeout(state.undoTimer);
-  const item = state.pendingDelete.item;
-  state.pendingDelete = null;
-  state.items.unshift(item);
-  state.items.sort((a, b) => b.id.localeCompare(a.id));
-  state.selectedId = item.id;
-  hideToast();
-  render();
-}
-
-function commitPendingDelete() {
-  if (!state.pendingDelete) {
-    return;
-  }
-
-  window.clearTimeout(state.undoTimer);
-  window.clearInterval(state.toastTick);
-
-  const pending = state.pendingDelete;
-  state.pendingDelete = null;
-  hideToast();
-
-  api(`/api/artifacts/${pending.item.id}`, { method: "DELETE" }).catch((err) => {
-    state.items.unshift(pending.item);
-    state.items.sort((a, b) => b.id.localeCompare(a.id));
-    if (!state.selectedId) {
-      state.selectedId = pending.item.id;
-    }
-    render();
-    showToast(err.message);
-  });
-}
-
 function removeItem(id) {
   state.items = state.items.filter((item) => item.id !== id);
   state.unread.delete(id);
@@ -403,31 +327,13 @@ function removeItem(id) {
 
 function showToast(message) {
   window.clearTimeout(state.toastTimer);
-  window.clearInterval(state.toastTick);
   els.toastText.textContent = message;
-  els.toastUndo.hidden = true;
   els.toastBar.style.transform = "scaleX(0)";
   els.toast.hidden = false;
   state.toastTimer = window.setTimeout(hideToast, 1800);
 }
 
-function showUndoToast(message) {
-  els.toastText.textContent = message;
-  els.toastUndo.hidden = false;
-  els.toast.hidden = false;
-  const tick = () => {
-    if (!state.pendingDelete) {
-      return;
-    }
-    const remaining = Math.max(0, state.pendingDelete.expiresAt - Date.now());
-    els.toastBar.style.transform = `scaleX(${remaining / 3000})`;
-  };
-  tick();
-  state.toastTick = window.setInterval(tick, 100);
-}
-
 function hideToast() {
-  window.clearInterval(state.toastTick);
   els.toast.hidden = true;
 }
 
@@ -495,21 +401,6 @@ function displayTitle(title, project) {
   return title.replace(re, "").trim() || title;
 }
 
-els.apiKey.addEventListener("change", async () => {
-  state.apiKey = els.apiKey.value.trim();
-  if (state.apiKey) {
-    localStorage.setItem("smth.apiKey", state.apiKey);
-  } else {
-    localStorage.removeItem("smth.apiKey");
-  }
-  connectStream();
-  try {
-    await loadArtifacts();
-  } catch (err) {
-    showToast(err.message);
-  }
-});
-
 els.search.addEventListener("input", () => {
   state.query = els.search.value;
   render();
@@ -547,8 +438,6 @@ els.copy.addEventListener("click", () => {
 });
 
 els.open.addEventListener("click", openRaw);
-els.delete.addEventListener("click", requestDelete);
-els.toastUndo.addEventListener("click", undoDelete);
 
 window.addEventListener("keydown", (event) => {
   const tag = (document.activeElement?.tagName || "").toLowerCase();
@@ -593,10 +482,6 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && state.selectedId) {
     openRaw();
     return;
-  }
-  if (event.key === "d" && state.selectedId) {
-    event.preventDefault();
-    requestDelete();
   }
 });
 

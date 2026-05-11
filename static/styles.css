@@ -166,13 +166,11 @@ button:disabled {
   }
 }
 
-.sb-auth,
 .sb-search,
 .sb-project {
   margin: 0 12px 8px;
 }
 
-.sb-auth input,
 .sb-project input,
 .sb-search input {
   min-width: 0;
@@ -181,20 +179,6 @@ button:disabled {
   background: transparent;
 }
 
-.sb-auth {
-  display: flex;
-  padding: 6px 10px;
-  background: var(--bg);
-  border: 0.5px solid var(--bd);
-  border-radius: 6px;
-}
-
-.sb-auth input {
-  width: 100%;
-  color: var(--fg);
-}
-
-.sb-auth input::placeholder,
 .sb-project input::placeholder,
 .sb-search input::placeholder {
   color: var(--fg-4);
@@ -211,7 +195,6 @@ button:disabled {
   color: var(--fg-3);
 }
 
-.sb-auth:focus-within,
 .sb-project:focus-within,
 .sb-search:focus-within {
   border-color: var(--fg-4);
@@ -465,11 +448,6 @@ button:disabled {
   gap: 2px;
 }
 
-.tb-group-danger {
-  padding-left: 8px;
-  border-left: 0.5px solid var(--bd);
-}
-
 .tb-btn {
   width: 26px;
   height: 26px;
@@ -483,10 +461,6 @@ button:disabled {
 .tb-btn:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--fg);
-}
-
-.tb-group-danger .tb-btn:hover:not(:disabled) {
-  color: #a93226;
 }
 
 .main-iframe {
@@ -604,18 +578,6 @@ button:disabled {
 
 .toast-text {
   letter-spacing: 0;
-}
-
-.toast-btn {
-  color: var(--accent);
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 4px;
-}
-
-.toast-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .toast-bar {

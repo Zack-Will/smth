@@ -94,7 +94,9 @@ Flags:
 All write endpoints require `X-API-Key: $SMTH_API_KEY`. Read endpoints also
 require auth unless `--public-read` is set. For browser use, prefer
 `--public-read` behind a trusted LAN, Tailscale, Basic Auth, or reverse-proxy
-access control; do not put the write API key into iframe URLs.
+access control; do not put the write API key into iframe URLs. The browser UI
+is intentionally read-only. Create, replace, and delete artifacts from CLI
+agents or scripts with the write API key.
 
 ## Storage
 

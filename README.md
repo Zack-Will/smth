@@ -18,6 +18,58 @@ go build -o smth-server ./cmd/smth-server
 SMTH_API_KEY=change-me ./smth-server --port 8080 --data ./data --public-read --max-size 2097152
 ```
 
+<details>
+<summary>Ask an agent to deploy SMTH</summary>
+
+Copy this prompt to a CLI agent that has SSH access to your target Linux host:
+
+```text
+Deploy this SMTH repo to my Linux server.
+
+Inputs:
+- SSH target: <user@host or ssh alias>
+- Public/LAN URL I will use in the browser: <http(s)://...>
+- Port to listen on: <port, default 8080>
+- Install root: <remote path, default ~/apps/smth>
+- Read access boundary: <LAN / Tailscale / reverse proxy auth / other>
+
+Requirements:
+1. Inspect the remote host first: OS, architecture, available ports, systemd
+   user support, existing SMTH install, and whether the requested port is free.
+2. Build the correct Linux binary from this repo. For x86_64 use:
+   `GOOS=linux GOARCH=amd64 go build -o smth-server ./cmd/smth-server`.
+   For ARM64 use `GOOS=linux GOARCH=arm64`.
+3. Deploy as:
+   `<install-root>/releases/<git-sha>/smth-server`
+   `<install-root>/releases/<git-sha>/static/`
+   `<install-root>/shared/data/`
+   `<install-root>/shared/smth.env`
+   `<install-root>/current -> releases/<git-sha>`
+4. Generate `SMTH_API_KEY` on the server if it does not exist. Store it only in
+   `<install-root>/shared/smth.env` with mode 600. Do not commit it or print it
+   unless I explicitly ask for it.
+5. Create a user-level systemd service if possible:
+   `smth-server --port <port> --data <install-root>/shared/data --static <install-root>/current/static --max-size 2097152 --public-read`
+   Use `--public-read` only because the browser UI needs read access for SSE and
+   artifact preview; protect reads with my stated LAN/Tailscale/reverse-proxy
+   boundary. Write endpoints must still require `X-API-Key`.
+6. Enable and start the service, then verify:
+   - service is active
+   - `GET /` returns 200
+   - `GET /api/artifacts?limit=1` works from the protected read boundary
+   - unauthenticated `POST /api/artifacts` returns 401
+   - authenticated `POST /api/artifacts` can create a small smoke artifact
+   - raw HTML can be read back
+   - logs do not leak `SMTH_API_KEY`
+7. Leave me with the URL, service name, install paths, key file path, and the
+   exact commands for status, logs, restart, and rollback.
+
+Do not expose the write API key in iframe URLs or query strings. If you change
+the repo while deploying, run `go test ./...` and `node --check static/app.js`.
+```
+
+</details>
+
 ## Project Layout
 
 ```text

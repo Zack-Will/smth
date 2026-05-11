@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -128,6 +129,7 @@ func (b *broker) publish(event string, data any) streamEvent {
 		select {
 		case sub.ch <- ev:
 		default:
+			log.Printf("dropped event %s for slow subscriber", ev.ID)
 		}
 	}
 	b.mu.Unlock()
@@ -630,7 +632,7 @@ func (s *server) requireWriteAuth(w http.ResponseWriter, r *http.Request) bool {
 		http.Error(w, "SMTH_API_KEY is required for write endpoints", http.StatusUnauthorized)
 		return false
 	}
-	if subtleCompare(r.Header.Get("X-API-Key"), s.cfg.apiKey) {
+	if constantTimeEqual(r.Header.Get("X-API-Key"), s.cfg.apiKey) {
 		return true
 	}
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -645,10 +647,7 @@ func (s *server) requireReadAuth(w http.ResponseWriter, r *http.Request) bool {
 		http.Error(w, "SMTH_API_KEY is required for read endpoints unless --public-read is set", http.StatusUnauthorized)
 		return false
 	}
-	if subtleCompare(r.Header.Get("X-API-Key"), s.cfg.apiKey) {
-		return true
-	}
-	if subtleCompare(r.URL.Query().Get("api_key"), s.cfg.apiKey) {
+	if constantTimeEqual(r.Header.Get("X-API-Key"), s.cfg.apiKey) {
 		return true
 	}
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -790,15 +789,8 @@ func newEventID(seq uint64) string {
 	return fmt.Sprintf("%013d%013d", now.UnixMilli(), seq)
 }
 
-func subtleCompare(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var result byte
-	for i := range a {
-		result |= a[i] ^ b[i]
-	}
-	return result == 0
+func constantTimeEqual(a, b string) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
 func logRequest(next http.Handler) http.Handler {

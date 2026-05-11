@@ -1,8 +1,10 @@
 # SMTH
 
-SMTH is a single-user HTML artifact shelf. It stores each artifact as raw HTML
-plus JSON metadata on the filesystem, and serves a small sidebar/canvas UI for
-previewing artifacts in a sandboxed iframe.
+> Markdown is boring, show me the HTML.
+
+A single-user HTML artifact shelf for CLI agents. SMTH stores each artifact as
+raw HTML plus JSON metadata on the filesystem, and serves a small sidebar/canvas
+UI for previewing artifacts in a sandboxed iframe.
 
 ## Build
 
@@ -38,9 +40,9 @@ Flags:
 - `--base-url https://smth.example.com`: optional public URL for create responses.
 
 All write endpoints require `X-API-Key: $SMTH_API_KEY`. Read endpoints also
-require auth unless `--public-read` is set. The browser UI can use `?api_key=`
-for read endpoints because `EventSource` and iframe navigation cannot attach
-custom request headers.
+require auth unless `--public-read` is set. For browser use, prefer
+`--public-read` behind a trusted LAN, Tailscale, Basic Auth, or reverse-proxy
+access control; do not put the write API key into iframe URLs.
 
 ## Storage
 
@@ -119,3 +121,8 @@ Server-Sent Events:
 
 The server emits `: heartbeat` every 30 seconds and replays the latest 100
 events after `Last-Event-ID` reconnects.
+
+---
+
+Project name riffs on Linus Torvalds' [LKML reply from 2000-08-25](https://lkml.org/lkml/2000/8/25/132):
+"Talk is cheap. Show me the code."

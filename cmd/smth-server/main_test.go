@@ -73,7 +73,8 @@ func TestArtifactLifecycle(t *testing.T) {
 		t.Fatalf("unexpected list: %+v", list.Items)
 	}
 
-	rawReq := httptest.NewRequest(http.MethodGet, "/a/"+created.ID+"?api_key=secret", nil)
+	rawReq := httptest.NewRequest(http.MethodGet, "/a/"+created.ID, nil)
+	rawReq.Header.Set("X-API-Key", "secret")
 	rawRec := httptest.NewRecorder()
 	s.routes().ServeHTTP(rawRec, rawReq)
 	if rawRec.Code != http.StatusOK {
@@ -132,6 +133,36 @@ func TestAuthAndMaxSize(t *testing.T) {
 	s.routes().ServeHTTP(rec, tooLarge)
 	if rec.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("too large status = %d body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestReadAuthRejectsQueryAPIKey(t *testing.T) {
+	t.Parallel()
+
+	s := testServer(t, config{
+		dataDir:   t.TempDir(),
+		staticDir: "./static",
+		maxSize:   defaultMaxSize,
+		apiKey:    "secret",
+		port:      8080,
+	})
+
+	meta := artifact{
+		ID:        "01K7Z0SP2Q2E6MG5D7TXQW77SB",
+		Title:     "secret leak check",
+		CreatedAt: "2026-05-11T00:00:00Z",
+		UpdatedAt: "2026-05-11T00:00:00Z",
+		SizeBytes: 12,
+	}
+	if err := s.writeArtifact(meta, []byte("<h1>x</h1>")); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/a/"+meta.ID+"?api_key=secret", nil)
+	rec := httptest.NewRecorder()
+	s.routes().ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("query api_key status = %d body = %s", rec.Code, rec.Body.String())
 	}
 }
 

@@ -46,15 +46,6 @@ function headers() {
   return state.apiKey ? { "X-API-Key": state.apiKey } : {};
 }
 
-function readURL(path) {
-  if (!state.apiKey) {
-    return path;
-  }
-  const url = new URL(path, location.origin);
-  url.searchParams.set("api_key", state.apiKey);
-  return `${url.pathname}${url.search}`;
-}
-
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -135,6 +126,7 @@ function render() {
     els.mainSepA.hidden = true;
     els.mainSepB.hidden = true;
     els.frame.removeAttribute("src");
+    els.frame.removeAttribute("srcdoc");
     return;
   }
 
@@ -146,16 +138,35 @@ function render() {
   els.mainSepA.hidden = false;
   els.mainSepB.hidden = false;
 
-  const desired = readURL(`/a/${selected.id}`);
-  const current = els.frame.getAttribute("src") || "";
-  if (!current.startsWith(`/a/${selected.id}`)) {
-    els.frame.src = desired;
+  if (els.frame.dataset.artifactId !== selected.id) {
+    loadFrameHTML(selected.id);
   }
 
   const url = new URL(location.href);
   if (url.searchParams.get("id") !== selected.id) {
     url.searchParams.set("id", selected.id);
     history.replaceState({}, "", url);
+  }
+}
+
+async function loadFrameHTML(id) {
+  els.frame.dataset.artifactId = id;
+  els.frame.removeAttribute("src");
+  try {
+    const response = await fetch(`/a/${id}`, { headers: headers() });
+    if (!response.ok) {
+      throw new Error((await response.text()).trim() || `${response.status} ${response.statusText}`);
+    }
+    if (state.selectedId !== id) {
+      return;
+    }
+    els.frame.srcdoc = await response.text();
+  } catch (err) {
+    if (state.selectedId !== id) {
+      return;
+    }
+    els.frame.removeAttribute("srcdoc");
+    showToast(err.message);
   }
 }
 
@@ -265,7 +276,7 @@ function connectStream() {
   }
 
   setConn("reconnecting");
-  state.stream = new EventSource(readURL("/api/stream"));
+  state.stream = new EventSource("/api/stream");
   state.stream.addEventListener("open", () => setConn("connected"));
   state.stream.addEventListener("error", () => setConn("disconnected"));
   state.stream.addEventListener("new", async (event) => {
@@ -282,9 +293,7 @@ function connectStream() {
     const data = JSON.parse(event.data);
     await refreshMetadata(data.id);
     if (state.selectedId === data.id) {
-      const url = new URL(readURL(`/a/${data.id}`), location.origin);
-      url.searchParams.set("t", Date.now().toString());
-      els.frame.src = `${url.pathname}${url.search}`;
+      await loadFrameHTML(data.id);
     } else {
       state.unread.add(data.id);
     }
@@ -321,7 +330,7 @@ async function copyLink() {
 function openRaw() {
   const selected = selectedItem();
   if (selected) {
-    window.open(readURL(`/a/${selected.id}`), "_blank", "noopener");
+    window.open(`/a/${selected.id}`, "_blank", "noopener");
   }
 }
 

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>smth</title>
+    <meta name="viewport" content="width=1200" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="sb-top">
+          <div class="sb-brand">
+            <span class="sb-name">SMTH</span>
+            <span class="sb-tag">Markdown is boring, show me the HTML</span>
+          </div>
+          <div class="conn" id="conn">
+            <span class="conn-dot"></span>
+            <span id="connLabel">connecting</span>
+          </div>
+        </div>
+
+        <div class="sb-auth">
+          <input id="apiKey" type="password" autocomplete="off" placeholder="X-API-Key" />
+        </div>
+
+        <div class="sb-search">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input id="search" type="search" placeholder="Search" spellcheck="false" />
+          <kbd>/</kbd>
+        </div>
+
+        <div class="sb-project">
+          <input id="project" type="search" placeholder="Project filter" spellcheck="false" />
+          <button id="refresh" type="button" title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M20 12a8 8 0 0 1-14.3 4.9"></path>
+              <path d="M4 12A8 8 0 0 1 18.3 7.1"></path>
+              <path d="M18 3v4h-4"></path>
+              <path d="M6 21v-4h4"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="sb-list" id="list"></div>
+
+        <div class="sb-foot">
+          <span id="count">0 artifacts</span>
+          <span class="sb-foot-sep">·</span>
+          <button id="more" type="button" disabled>more</button>
+          <span class="sb-foot-sep">·</span>
+          <span title="Build version">v0.1.0</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-toolbar">
+          <div class="main-toolbar-l">
+            <span class="main-title" id="mainTitle">no artifact selected</span>
+            <span class="main-sep" id="mainSepA">·</span>
+            <span class="main-project" id="mainProject"></span>
+            <span class="main-sep" id="mainSepB">·</span>
+            <span class="main-time" id="mainTime"></span>
+          </div>
+          <div class="main-toolbar-r">
+            <div class="tb-group">
+              <button class="tb-btn" id="copy" type="button" title="Copy link" disabled>
+                <svg class="icon-copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 1 0-7.07-7.07l-1.5 1.5"></path>
+                  <path d="M14 11a5 5 0 0 0-7.07 0l-3 3A5 5 0 1 0 11 21.07l1.5-1.5"></path>
+                </svg>
+              </button>
+              <button class="tb-btn" id="open" type="button" title="Open in new tab" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M14 4h6v6"></path>
+                  <path d="M10 14 21 3"></path>
+                  <path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="tb-group tb-group-danger">
+              <button class="tb-btn" id="delete" type="button" title="Delete  (d)" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 6h18"></path>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <iframe id="frame" class="main-iframe" sandbox="allow-scripts allow-forms allow-popups allow-modals" title="Artifact preview"></iframe>
+
+        <div class="empty" id="empty">
+          <div class="empty-inner">
+            <div class="empty-eyebrow">smth · empty</div>
+            <h1 class="empty-h">Push your first artifact.</h1>
+            <p class="empty-p">Anything you POST shows up here in real time. HTML, scripts, the works — sandboxed but live.</p>
+            <pre class="empty-curl">curl -X POST $SMTH_URL/api/artifacts \
+  -H "X-API-Key: $SMTH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"html":"&lt;h1&gt;hello&lt;/h1&gt;","title":"test"}'</pre>
+            <div class="empty-hint">Waiting for events on <code>/api/stream</code>…</div>
+          </div>
+        </div>
+      </main>
+
+      <div class="toast" id="toast" hidden>
+        <span class="toast-text" id="toastText"></span>
+        <button class="toast-btn" id="toastUndo" type="button">undo</button>
+        <span class="toast-bar"><span class="toast-bar-fill" id="toastBar"></span></span>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

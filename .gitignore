@@ -1,0 +1,5 @@
+.cache/
+/smth-server
+data/*
+!data/.gitkeep
+.DS_Store

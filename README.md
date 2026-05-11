@@ -6,6 +6,12 @@ A single-user HTML artifact shelf for CLI agents. SMTH stores each artifact as
 raw HTML plus JSON metadata on the filesystem, and serves a small sidebar/canvas
 UI for previewing artifacts in a sandboxed iframe.
 
+## Interface Preview
+
+![SMTH README visual tour](docs/assets/smth-readme-visual-tour.jpeg)
+
+![SMTH complex controls demo](docs/assets/smth-complex-controls-demo.jpeg)
+
 ## Build
 
 ```sh
@@ -180,3 +186,5 @@ events after `Last-Event-ID` reconnects.
 
 Project name riffs on Linus Torvalds' [LKML reply from 2000-08-25](https://lkml.org/lkml/2000/8/25/132):
 "Talk is cheap. Show me the code."
+
+本项目积极参与并认可 [linux.do社区](https://linux.do)。

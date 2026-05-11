@@ -331,8 +331,7 @@ function requestDelete() {
     return;
   }
 
-  window.clearTimeout(state.undoTimer);
-  window.clearInterval(state.toastTick);
+  commitPendingDelete();
 
   const victim = selected;
   removeItem(victim.id);
@@ -343,22 +342,8 @@ function requestDelete() {
   showUndoToast(`deleted "${displayTitle(victim.title || victim.id, victim.project || "")}"`);
   render();
 
-  state.undoTimer = window.setTimeout(async () => {
-    const pending = state.pendingDelete;
-    state.pendingDelete = null;
-    hideToast();
-    if (!pending) {
-      return;
-    }
-    try {
-      await api(`/api/artifacts/${pending.item.id}`, { method: "DELETE" });
-    } catch (err) {
-      state.items.unshift(pending.item);
-      state.items.sort((a, b) => b.id.localeCompare(a.id));
-      state.selectedId = pending.item.id;
-      render();
-      showToast(err.message);
-    }
+  state.undoTimer = window.setTimeout(() => {
+    commitPendingDelete();
   }, 3000);
 }
 
@@ -374,6 +359,29 @@ function undoDelete() {
   state.selectedId = item.id;
   hideToast();
   render();
+}
+
+function commitPendingDelete() {
+  if (!state.pendingDelete) {
+    return;
+  }
+
+  window.clearTimeout(state.undoTimer);
+  window.clearInterval(state.toastTick);
+
+  const pending = state.pendingDelete;
+  state.pendingDelete = null;
+  hideToast();
+
+  api(`/api/artifacts/${pending.item.id}`, { method: "DELETE" }).catch((err) => {
+    state.items.unshift(pending.item);
+    state.items.sort((a, b) => b.id.localeCompare(a.id));
+    if (!state.selectedId) {
+      state.selectedId = pending.item.id;
+    }
+    render();
+    showToast(err.message);
+  });
 }
 
 function removeItem(id) {

@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestArtifactLifecycle(t *testing.T) {
@@ -129,6 +132,55 @@ func TestAuthAndMaxSize(t *testing.T) {
 	s.routes().ServeHTTP(rec, tooLarge)
 	if rec.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("too large status = %d body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLogRequestPreservesFlusherForStream(t *testing.T) {
+	t.Parallel()
+
+	s := testServer(t, config{
+		dataDir:    t.TempDir(),
+		staticDir:  "./static",
+		publicRead: true,
+		maxSize:    defaultMaxSize,
+		apiKey:     "secret",
+		port:       8080,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/stream", nil)
+	rec := httptest.NewRecorder()
+	logRequest(s.routes()).ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusInternalServerError {
+		t.Fatalf("stream returned 500 through log wrapper: %s", rec.Body.String())
+	}
+	if rec.Header().Get("Content-Type") != "text/event-stream" {
+		t.Fatalf("content-type = %q", rec.Header().Get("Content-Type"))
+	}
+}
+
+func TestLogRequestRedactsAPIKey(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	oldWriter := log.Writer()
+	log.SetOutput(&out)
+	t.Cleanup(func() { log.SetOutput(oldWriter) })
+
+	handler := logRequest(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/a/01K7Z0SP2Q2E6MG5D7TXQW77SB?api_key=secret&x=1", nil)
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	got := out.String()
+	if strings.Contains(got, "secret") {
+		t.Fatalf("log leaked api key: %s", got)
+	}
+	if !strings.Contains(got, "api_key=REDACTED") {
+		t.Fatalf("log did not redact api key: %s", got)
 	}
 }
 

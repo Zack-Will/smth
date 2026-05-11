@@ -806,7 +806,7 @@ func logRequest(next http.Handler) http.Handler {
 		start := time.Now()
 		lrw := &loggingResponseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(lrw, r)
-		log.Printf("%s %s %d %s", r.Method, r.URL.RequestURI(), lrw.status, time.Since(start).Round(time.Millisecond))
+		log.Printf("%s %s %d %s", r.Method, sanitizedRequestURI(r), lrw.status, time.Since(start).Round(time.Millisecond))
 	})
 }
 
@@ -818,4 +818,23 @@ type loggingResponseWriter struct {
 func (w *loggingResponseWriter) WriteHeader(status int) {
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *loggingResponseWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func sanitizedRequestURI(r *http.Request) string {
+	if r.URL == nil {
+		return ""
+	}
+	u := *r.URL
+	q := u.Query()
+	if q.Has("api_key") {
+		q.Set("api_key", "REDACTED")
+		u.RawQuery = q.Encode()
+	}
+	return u.RequestURI()
 }
